@@ -65,5 +65,21 @@ pub async fn set_user_corpus(pool: &SqlitePool, corpus: &str, user_id: u64) -> R
     .await?
     .rows_affected();
 
-    Ok(rows_affected > 0)
+    if rows_affected > 0 {
+        Ok(true)
+    } else {
+        let rows_affected = sqlx::query!(
+            r#"
+                INSERT INTO settings
+                VALUES (?, ?)
+            "#,
+            id,
+            corpus
+        )
+        .execute(pool)
+        .await?
+        .rows_affected();
+
+        Ok(rows_affected > 0)
+    }
 }
