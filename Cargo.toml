@@ -1,0 +1,30 @@
+[package]
+name = "cmini-rs"
+version = "0.1.0"
+edition = "2021"
+authors = [ "Clemenpine", "Eve", "Oxey" ]
+
+[workspace]
+members = ["core", "discord", "old-benchmarks"]
+
+[workspace.dependencies]
+tokio = { version = "1.43.0", features = [ "full" ] }
+sqlx = { version = "0.8", features = ["sqlite", "runtime-tokio", "tls-native-tls"] }
+rmini-core = { path = "./core" }
+
+[dependencies]
+
+[dev-dependencies]
+diol = { version = "0.8.3", default-features = false }
+old-benchmarks = { path = "./old-benchmarks" }
+rmini-core = { workspace = true }
+sqlx = { workspace = true }
+tokio = { workspace = true }
+
+# [[bin]]
+# name = "rmini"
+# path = "./discord/src/main.rs"
+
+[[bench]]
+name = "benchmarks"
+harness = false

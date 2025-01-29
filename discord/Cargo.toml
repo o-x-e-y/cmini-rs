@@ -1,0 +1,17 @@
+[package]
+name = "rmini-discord"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+poise = "0.6"
+tokio = { workspace = true }
+dotenvy = "0.15.7"
+env_logger = "0.11"
+nanorand = "0.7.0"
+sqlx = { workspace = true }
+rmini-core = { workspace = true }
+
+[[bin]]
+name = "rmini"
+path = "src/main.rs"
