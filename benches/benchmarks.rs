@@ -39,7 +39,7 @@ mod bench {
         let trigrams = black_box(&TRIGRAMS[..amount]);
 
         bencher.bench(|| {
-            let _ = rt.block_on(black_box(rmini_core::freqs::get_trigrams(
+            let _ = rt.block_on(black_box(rmini_core::freqs::get_ngrams(
                 &pool, "english", trigrams,
             )));
         })

@@ -1,14 +1,63 @@
-// use std::collections::HashMap;
-
 use crate::Result;
 use sqlx::{prelude::*, SqlitePool};
 
-// #[derive(Debug, Clone, Serialize, Deserialize)]
-// struct Trigrams(HashMap<String, f64>);
+#[derive(Debug, Clone)]
+pub enum NgramType {
+    Char,
+    Bigram,
+    Skipgram,
+    Trigram,
+}
+
+#[derive(Debug, Clone)]
+pub struct Ngrams {
+    pub chars: Vec<Ngram>,
+    pub bigrams: Vec<Ngram>,
+    pub skipgrams: Vec<Ngram>,
+    pub trigrams: Vec<Ngram>,
+}
+
+impl Ngrams {
+    pub fn has_chars(&self) -> bool {
+        !self.chars.is_empty()
+    }
+
+    pub fn has_bigrams(&self) -> bool {
+        !self.bigrams.is_empty()
+    }
+
+    pub fn has_skipgrams(&self) -> bool {
+        !self.skipgrams.is_empty()
+    }
+
+    pub fn has_trigrams(&self) -> bool {
+        !self.trigrams.is_empty()
+    }
+}
+
+impl NgramType {
+    pub fn name(&self) -> &'static str {
+        match self {
+            Self::Char => "char",
+            Self::Bigram => "bigram",
+            Self::Skipgram => "skipgram",
+            Self::Trigram => "trigram",
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        match self {
+            Self::Char => 1,
+            Self::Bigram => 2,
+            Self::Skipgram => 2,
+            Self::Trigram => 3,
+        }
+    }
+}
 
 #[derive(Clone, Debug, FromRow)]
-pub struct SqlTrigram {
-    pub trigram: String,
+pub struct Ngram {
+    pub ngram: String,
     pub frequency: f64,
 }
 
@@ -17,16 +66,6 @@ pub struct UserSettings {
     pub user_id: i64,
     pub selected_corpus: String,
 }
-
-// pub fn get_trigrams_json<'a>(trigrams: &[&'a str]) -> PoiseResult<Vec<(&'a str, f64)>> {
-//     let s = std::fs::read_to_string("./corpora/trigrams.json")?;
-//     let json = serde_json::from_str::<Trigrams>(&s)?;
-
-//     Ok(trigrams
-//         .iter()
-//         .map(|&t| (t, *json.0.get(t).unwrap_or(&0.0)))
-//         .collect())
-// }
 
 pub async fn get_user_settings(pool: &SqlitePool, user_id: u64) -> Result<UserSettings> {
     let id = user_id as i64;
@@ -46,31 +85,55 @@ pub async fn get_user_settings(pool: &SqlitePool, user_id: u64) -> Result<UserSe
     Ok(query)
 }
 
-pub async fn get_trigrams<'a>(
+async fn get_particular_ngrams(
     pool: &SqlitePool,
     corpus: &str,
-    trigrams: &[&'a str],
-) -> Result<Vec<SqlTrigram>> {
-    let placeholders = trigrams.iter().map(|_| "?").collect::<Vec<_>>().join(",");
-    let query_str = format!(
-        r#"
-        SELECT trigram, frequency
-        FROM trigrams
-        WHERE corpus = ?
-            AND trigram IN ({})
-        "#,
-        placeholders
-    );
+    ngram_type: NgramType,
+    ngrams: &[&str],
+) -> Result<Vec<Ngram>> {
+    let ngrams = ngrams
+        .iter()
+        .filter(|n| n.len() == ngram_type.len())
+        .collect::<Vec<_>>();
 
-    let mut query = sqlx::query_as::<_, SqlTrigram>(&query_str).bind(&corpus);
-    for trigram in trigrams {
-        query = query.bind(trigram);
+    if ngrams.is_empty() {
+        return Ok(vec![]);
     }
 
-    let mut trigrams = query.fetch_all(pool).await?;
-    trigrams.reverse();
+    let placeholders = ngrams.iter().map(|_| "?").collect::<Vec<_>>().join(",");
+    let query_str = format!(
+        r#"
+            SELECT ngram, frequency
+            FROM {}s
+            WHERE corpus = ?
+                AND ngram IN ({})
+        "#,
+        ngram_type.name(),
+        placeholders,
+    );
 
-    Ok(trigrams)
+    let mut query = sqlx::query_as::<_, Ngram>(&query_str).bind(&corpus);
+    for ngram in ngrams {
+        query = query.bind(ngram);
+    }
+
+    let mut ngrams = query.fetch_all(pool).await?;
+    ngrams.reverse();
+
+    Ok(ngrams)
+}
+
+pub async fn get_ngrams(pool: &SqlitePool, corpus: &str, ngrams: &[&str]) -> Result<Ngrams> {
+    let chars = get_particular_ngrams(pool, corpus, NgramType::Char, ngrams).await?;
+    let bigrams = get_particular_ngrams(pool, corpus, NgramType::Bigram, ngrams).await?;
+    let skipgrams = get_particular_ngrams(pool, corpus, NgramType::Skipgram, ngrams).await?;
+    let trigrams = get_particular_ngrams(pool, corpus, NgramType::Trigram, ngrams).await?;
+    
+    let ngrams = Ngrams {
+        chars, bigrams, skipgrams, trigrams
+    };
+
+    Ok(ngrams)
 }
 
 #[cfg(test)]
@@ -97,10 +160,10 @@ mod tests {
         let trigrams = &["the", "dof", "lol"];
 
         let freqs = rt
-            .block_on(get_trigrams(&pool, corpus, trigrams))
+            .block_on(get_ngrams(&pool, corpus, trigrams))
             .expect("Couldn't fetch freqs: ");
 
-        assert_eq!(freqs.len(), trigrams.len());
+        assert_eq!(freqs.trigrams.len(), trigrams.len());
 
         println!("{freqs:?}");
     }

@@ -9,33 +9,33 @@ CREATE TABLE IF NOT EXISTS corpus (
 
 CREATE TABLE IF NOT EXISTS chars (
     corpus TEXT NOT NULL,
-    char TEXT NOT NULL CHECK(length(char) = 1),
+    ngram TEXT NOT NULL CHECK(length(ngram) = 1),
     frequency REAL NOT NULL,
-    PRIMARY KEY (corpus, char),
+    PRIMARY KEY (corpus, ngram),
     FOREIGN KEY (corpus) REFERENCES corpus(corpus)
 );
 
 CREATE TABLE IF NOT EXISTS bigrams (
     corpus TEXT NOT NULL,
-    bigram TEXT NOT NULL CHECK(length(bigram) = 2),
+    ngram TEXT NOT NULL CHECK(length(ngram) = 2),
     frequency REAL NOT NULL,
-    PRIMARY KEY (corpus, bigram),
+    PRIMARY KEY (corpus, ngram),
     FOREIGN KEY (corpus) REFERENCES corpus(corpus)
 );
 
 CREATE TABLE IF NOT EXISTS skipgrams (
     corpus TEXT NOT NULL,
-    skipgram TEXT NOT NULL CHECK(length(skipgram) = 2),
+    ngram TEXT NOT NULL CHECK(length(ngram) = 2),
     frequency REAL NOT NULL,
-    PRIMARY KEY (corpus, skipgram),
+    PRIMARY KEY (corpus, ngram),
     FOREIGN KEY (corpus) REFERENCES corpus(corpus)
 );
 
 CREATE TABLE IF NOT EXISTS trigrams (
     corpus TEXT NOT NULL,
-    trigram TEXT NOT NULL CHECK(length(trigram) = 3),
+    ngram TEXT NOT NULL CHECK(length(ngram) = 3),
     frequency REAL NOT NULL,
-    PRIMARY KEY (corpus, trigram),
+    PRIMARY KEY (corpus, ngram),
     FOREIGN KEY (corpus) REFERENCES corpus(corpus)
 );
 
