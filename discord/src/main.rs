@@ -1,5 +1,4 @@
 mod commands;
-mod queries;
 
 use crate::commands::*;
 
