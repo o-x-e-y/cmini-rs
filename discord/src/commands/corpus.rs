@@ -27,9 +27,13 @@ pub async fn corpus(ctx: Context<'_>, #[rest] corpus: Option<String>) -> PoiseRe
 
             match corpus {
                 Some(c) => {
-                    set_user_corpus(pool, &c.corpus, ctx.author().id.get()).await?;
+                    let added = set_user_corpus(pool, &c.corpus, ctx.author().id.get()).await?;
 
-                    format!("Set corpus to `{}`.", c.corpus)
+                    if !added {
+                        format!("Couldn't set corpus. Please try again!")
+                    } else {
+                        format!("Set corpus to `{}`.", c.corpus)
+                    }
                 }
                 None => fmt_all_corpora(&pool).await?,
             }
